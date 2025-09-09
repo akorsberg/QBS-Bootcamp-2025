@@ -1,0 +1,122 @@
+---
+title: "Data Wrangling II: In Class Exercises - Solutions"
+author: "QBS Bootcamp 2025"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F)
+```
+
+# 1. Generate Random Data
+
+In class, we used examples where the distribution was always the same for all variables.
+
+Generate a random data set (remember to set a random seed) of 10,000 pregnant women with the following characteristics:
+
+1. Age is uniformly distributed between 18 and 35 years old (Variable Name: Age).
+
+2. There is a probability of 0.5 that each mother is carrying a female infant (Variable Name: InfantSex). This variable should be formatted as a factor variable with levels "Male" and "Female"
+
+3. Define fasting glucose measures (Variable Name: Glucose1) as normally distributed. Mothers carrying a male infant have a mean score of 85 and a standard deviation of 6 mg/dL. Mothers carrying a female infant have a mean score of 80 and a standard deviation of 6 mg/dL. 
+ 
+4. Define 1 hour glucose measures (Variable Name: Glucose2) as normally distributed. Mothers carrying a male infant have a mean score of 165 and a standard deviation of 9 mg/dL. Mothers carrying a female infant have a mean score of 155 and a standard deviation of 9 mg/dL. 
+
+5. Define a summary variable for gestational diabetes (Variable Name: Diagnosis) which is "Gestational Diabetes" if either Glucose1 is higher than 95 or Glucose2 is higher than 180 and "Healthy" otherwise. 
+
+```{r warning = F, message = F}
+# Load packages
+library(tidyverse)
+
+# Set random seed for reproducibility
+set.seed(5678)
+
+# Define Initial variables
+gestDiabetes <- data.frame('subjectID' = seq(1:10000),
+                           'Age' = trunc(runif(n = 10000,min = 18,max = 35)),
+                           'InfantSex' = factor(ifelse(rbinom(n = 10000,size = 1,prob = 0.5) == 1,
+                                                       'Male','Female')),
+                           # Prespecifying using female specific distribution
+                           'Glucose1' = rnorm(10000,mean = 80,sd = 6),
+                           'Glucose2' = rnorm(10000,mean = 155,sd = 9)) 
+
+# Define glucose1 & glucose2 distributions for male infants
+maleIndex <- which(gestDiabetes$InfantSex == 'Male')
+gestDiabetes[maleIndex,'Glucose1'] <- rnorm(n = length(maleIndex),mean = 85,sd = 6)
+gestDiabetes[maleIndex,'Glucose2'] <- rnorm(n = length(maleIndex),mean = 165,sd = 9)
+
+# check glucose distributions by gender
+gestDiabetes %>% 
+  group_by(InfantSex) %>% 
+  summarise(Mean = mean(Glucose1),SD = sd(Glucose1),n = n()) %>% 
+  mutate(Perc = n/sum(n))
+head(gestDiabetes)
+
+# Define gestational diabetes variable
+gestDiabetes$Diagnosis <- factor(ifelse(gestDiabetes$Glucose1 > 95 | gestDiabetes$Glucose2 > 180,
+                                 'Gestational Diabetes','Healthy'))
+head(gestDiabetes)
+colnames(gestDiabetes)
+```
+
+# 2. Summarize Random Data
+
+Generate a wide format table summarizing the age, fasting glucose, and one hour glucose of all subjects by both disease status and infant sex.
+
+Your table should have 4 rows in the following order: Healthy & Female, Gestational Diabetes & Female, Healthy & Male, Gestational Diabetes & Male and should summarize mean age, mean and sd fasting glucose, and mean and sd one hour glucose.
+
+```{r}
+# Calculate means and sds
+gestDiabetes %>% 
+  group_by(Diagnosis,InfantSex) %>% 
+  summarize(Mean.Age = mean(Age),Mean.Fasting = mean(Glucose1),
+            SD.Fasting = sd(Glucose1),Mean.FollowUpGlucose = mean(Glucose2),
+            SD.FollowUpGlucose = sd(Glucose2)) %>% 
+  arrange(InfantSex,desc(Diagnosis))
+gestDiabetes
+```
+
+# 3. Visualize Data
+
+Generate a boxplot of the distribution of Glucose (y axis) for all subjects where Timepoint is on the x-axis and the plot is colored by Diagnosis. 
+
+## Using *rshape2*
+
+```{r}
+# Melt the data
+longData <- reshape2::melt(gestDiabetes,id.vars = c('subjectID','Age','InfantSex','Diagnosis'),
+                           value.name = 'Glucose',variable.name = 'Timepoint')
+# Rename time point variable
+longData$Timepoint <- factor(ifelse(longData$Timepoint == 'Glucose1','Fasting','One Hour'))
+
+# Print values for subject 1
+longData[longData$subjectID == 1,]
+```
+
+## Using *tidyverse*
+
+```{r}
+longData <- gestDiabetes %>% 
+  # Melt data frame
+  gather(key = Timepoint,value = Glucose,c('Glucose1','Glucose2'))
+
+# Rename time point variable
+longData$Timepoint <- factor(ifelse(longData$Timepoint == 'Glucose1','Fasting','One Hour'))
+
+# Print values for subject 1
+longData[longData$subjectID == 1,]
+```
+
+```{r}
+# Define a color palette for diagnosis
+colors.diagnosis <- c('goldenrod','skyblue3')
+
+# Plot glucose by timepoint
+ggplot(longData,aes(x = Timepoint,y = Glucose,fill = Diagnosis)) +
+  geom_boxplot() +
+  labs(x = 'Timepoint',y = 'Glucose (mg/dL)',fill = 'GDM Diagnosis') +
+  scale_fill_manual(values = colors.diagnosis) + 
+  scale_x_discrete(labels = c('Baseline','One Hour')) +
+  theme_classic()
+```
+
