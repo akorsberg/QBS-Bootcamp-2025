@@ -1,0 +1,132 @@
+---
+title: "Data Analytics I, Solutions for In Class Exercises"
+author: "QBS Bootcamp 2025"
+output: pdf_document
+---
+
+# Functions and Loops
+
+1) For questions 1 - 3, you will need the data files in the "in_class_exercise_data" zip file we emailed you last night. Save this zip file as a folder on your local computer. Write a function that takes the directory as an input, loops through all the files in the directory, and identifies individuals with CRP levels greater than 0.4mg/dL. Write the data for these individuals with high CRP to fiver separate files, one for each sample data file.
+```{r setup, include=TRUE}
+setwd("/Users/noellekosarek/Documents/GitHub/QBS103/data/Data_Analytics_1_In_Class_Assignment_Data")
+my_fun <- function(path_to_directory){
+  filenames <- list.files(path = path_to_directory, pattern = ".csv")
+
+  for (file in filenames){
+    data_set_name <- toString(file)
+    data_set_name <- gsub("\\..*","",data_set_name)
+    df <- data.frame()
+    the_file <- read.csv(file)
+    crp_var <- the_file$crp
+    i = 1
+    for (value in crp_var){
+     if (value >=0.4){
+        df <- rbind(df,the_file[i,])
+        i = i +1
+      }else{
+        i = i + 1
+      }
+   }
+   write.csv(df,paste0("/Users/noellekosarek/Documents/GitHub/QBS103/data/results/",data_set_name,"_high_crp.csv"), row.names = FALSE)
+  }
+}
+
+
+path_to_directory = "/Users/noellekosarek/Documents/GitHub/QBS103/data/Data_Analytics_1_In_Class_Assignment_Data"
+my_fun(path_to_directory)
+```
+
+2) Write a function that takes the directory and generates one set box plots for male and female CRP levels for all five sets of sample data.
+```{r}
+library(ggplot2)
+library(harrypotter)
+
+setwd("/Users/noellekosarek/Documents/GitHub/QBS103/data/Data_Analytics_1_In_Class_Assignment_Data")
+
+my_fun <- function(path_to_directory){
+  filenames <- list.files(path = path_to_directory, pattern = ".csv")
+
+  big_df <- data.frame()
+  df <- data.frame()
+  i = 1
+  for (file in filenames){
+      the_file <- read.csv(file)
+     sex <- the_file$sex
+     crp <- the_file$crp
+     df <- data.frame(sex,crp)
+     big_df <-rbind(big_df,df)
+     i = i + 1
+}
+
+  ggplot(big_df, aes(x = sex, y = crp, fill = sex))+ xlab("Sex")+ ylab("CRP mg/dL") + ggtitle("CRP Level by Sex")+ geom_boxplot() + scale_fill_hp_d(option = "lunalovegood")
+}
+
+path_to_directory = "/Users/noellekosarek/Documents/GitHub/QBS103/data/Data_Analytics_1_In_Class_Assignment_Data"
+
+my_fun(path_to_directory)
+
+```
+
+3) Write a function that takes the directory and plots a scatterplot of age and crp for each sample data set. You should end up with five scatter plots. Color the scatter plot dots  by disease status. 
+```{r}
+library(harrypotter)
+setwd("/Users/noellekosarek/Documents/GitHub/QBS103/data/Data_Analytics_1_In_Class_Assignment_Data")
+
+fun_stats_pretty_plots <- function(path_to_directory){
+  i = 1
+  filenames <- list.files(path = path_to_directory, pattern = ".csv")
+  for (file in filenames){
+    data_set_name <- toString(file)
+    data_set_name <- gsub("\\..*","",data_set_name)
+    the_file <- read.csv(file)
+    age_var <- the_file$age
+    crp_var <- the_file$crp
+    disease_status <- the_file$disease_status
+    df <- data.frame(age_var,crp_var,disease_status)
+    
+    print(ggplot(df, aes(x = age_var, y = crp_var, color = disease_status)) + geom_point() + xlab("Age") + ylab("CRP mg/dL") + guides(colour = guide_legend(title = "Disease Status"))) 
+  }
+}
+
+fun_stats_pretty_plots(path_to_directory = "/Users/noellekosarek/Documents/GitHub/QBS103/data/Data_Analytics_1_In_Class_Assignment_Data")
+```
+
+# Functions and Table One
+
+4) Design your own function to build a table one. Users should input a data frame and how different variables should be treated (i.e. normally or non-normally distributed, categorical).
+```{r}
+myTableOneFunction <- function(data, normal_vars = NULL, nonnormal_vars = NULL, cat_vars = NULL) {
+  
+  results <- list()
+  
+  # Continuous (normal): mean (sd)
+  if (!is.null(normal_vars)) {
+    results$normal <- data %>%
+      summarise(across(all_of(normal_vars),
+                       ~ paste0(round(mean(.x, na.rm=TRUE),2), " (",
+                                round(sd(.x, na.rm=TRUE),2),")")))
+  }
+  
+  # Continuous (non-normal): median [IQR]
+  if (!is.null(nonnormal_vars)) {
+    results$nonnormal <- data %>%
+      summarise(across(all_of(nonnormal_vars),
+                       ~ paste0(median(.x, na.rm=TRUE)," [",
+                                quantile(.x,0.25,na.rm=TRUE),"-",
+                                quantile(.x,0.75,na.rm=TRUE),"]")))
+  }
+  
+  # Categorical: counts (percent)
+  if (!is.null(cat_vars)) {
+    results$categorical <- lapply(cat_vars, function(v) {
+      tab <- table(data[[v]], useNA="ifany")
+      prop <- prop.table(tab)*100
+      paste0(names(tab), ": ", as.vector(tab)," (", round(prop,1),"%)")
+    })
+    names(results$categorical) <- cat_vars
+  }
+  
+  return(results)
+}
+```
+
