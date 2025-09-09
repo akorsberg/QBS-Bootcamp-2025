@@ -1,0 +1,28 @@
+---
+title: "Intro to Bash, In Class Exercises"
+author: "QBS Bootcamp"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+1) RA OA RNA seq.xls. Download the RA_OA_RNA_seq.xls file to your desktop (sent in email last night).
+
+2) In your terminal window, print out the contents of the file.
+
+3) Use ”head” and ”tail” to print out the first and last 10 lines of this file.
+
+4) How many genes are in this file?
+
+5) Create a directory on your desktop called QBS_Bootcamp_IntrotoBash. Copy the RA_OA_RNA_seq.xls file from your desktop to the QBS_Bootcamp_IntrotoBash directory.
+
+6) Rename the RA_OA_RNA_seq.xls file in your QBS_Bootcamp_IntrotoBash directory to qbs_bootcamp_data.xls.
+
+7) Move the RA_OA_RNA_seq.xls on your desktop into your QBS_Bootcamp_IntrotoBash directory and remove
+the qbs_bootcamp_data.xls file.
+
+8) Write the first and last 20 lines of the RA_OA_RNA_seq.xls file to a file called RA_OA_RNA_seq_subset.xls.
+
+9) Count the number of genes beginning with the letter ”A” that appear in this data file.
